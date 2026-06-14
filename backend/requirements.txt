@@ -1,0 +1,15 @@
+# Core backend (Python 3.11–3.13)
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.36
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Carga de datos (seed.py / ETL)
+pandas==2.2.3
+
+# PostgreSQL (producción). En local con SQLite no es estrictamente necesario.
+psycopg2-binary==2.9.10
+
+# Agente IA (opcional) — ver requirements-ai.txt

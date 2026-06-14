@@ -1,0 +1,6 @@
+# Agente IA (LangChain + Groq). Instalar SOLO cuando se quiera el modo LLM.
+#   pip install -r requirements-ai.txt
+# Sin esto, el endpoint /datos funciona en modo fallback consultando la BD.
+langchain==0.3.13
+langchain-community==0.3.13
+langchain-groq==0.2.2
