@@ -22,12 +22,10 @@ export default function QueryBar() {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
-
     setLoading(true)
     setError(null)
     setResultado(null)
     setExpanded(true)
-
     try {
       const data = await postDatos(q)
       setResultado(data)
@@ -59,15 +57,9 @@ export default function QueryBar() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Pregunta en lenguaje natural sobre los datos…"
-          className="input-glass flex-1"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 0,
-            padding: '0 0.25rem',
-            boxShadow: 'none',
-          }}
+          placeholder="Pregunta sobre los datos…"
+          className="input-glass flex-1 min-w-0"
+          style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: '0 0.25rem', boxShadow: 'none' }}
           disabled={loading}
         />
         {(resultado || error) && (
@@ -87,21 +79,19 @@ export default function QueryBar() {
         >
           {loading ? (
             <span className="w-4 h-4 border-2 border-[#00363e] border-t-transparent rounded-full animate-spin inline-block" />
-          ) : (
-            '→'
-          )}
-          {loading ? 'Analizando' : 'Consultar'}
+          ) : '→'}
+          <span className="hidden sm:inline">{loading ? 'Analizando' : 'Consultar'}</span>
         </button>
       </form>
 
-      {/* Example queries (show when not expanded) */}
+      {/* Example queries — horizontal scroll on mobile */}
       {!expanded && !loading && (
-        <div className="flex flex-wrap gap-1.5 px-4 pb-3 pt-0">
+        <div className="flex gap-1.5 px-4 pb-3 pt-0 overflow-x-auto scrollbar-none">
           {EJEMPLOS.map((ej) => (
             <button
               key={ej}
               onClick={() => handleExample(ej)}
-              className="text-[11px] rounded-full px-2.5 py-1 transition-all hover:text-white/90"
+              className="shrink-0 text-[11px] rounded-full px-2.5 py-1 transition-all hover:text-white/90"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 color: '#859397',
