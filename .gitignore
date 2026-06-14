@@ -7,6 +7,10 @@
 *.zip
 *.docx
 appbit-main/
+diseño/
+docs/
+.claude
+
 
 # Python
 __pycache__/
