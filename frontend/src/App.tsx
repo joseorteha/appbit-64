@@ -20,19 +20,18 @@ const PERIODOS: { id: Periodo; label: string; icon: string }[] = [
 ]
 
 export default function App() {
-  const [antenas,      setAntenas]      = useState<Antena[]>([])
-  const [flujos,       setFlujos]       = useState<Flujo[]>([])
-  const [concentracion,setConcentracion]= useState<ConcentracionItem[]>([])
-  const [cobertura,    setCobertura]    = useState<CoberturaItem[]>([])
-  const [indicadores,  setIndicadores]  = useState<Indicador[]>([])
-  const [vertical,     setVertical]     = useState<Vertical>('salud_mental')
-  const [periodo,      setPeriodo]      = useState<Periodo>('MANHA')
+  const [antenas,       setAntenas]       = useState<Antena[]>([])
+  const [flujos,        setFlujos]        = useState<Flujo[]>([])
+  const [concentracion, setConcentracion] = useState<ConcentracionItem[]>([])
+  const [cobertura,     setCobertura]     = useState<CoberturaItem[]>([])
+  const [indicadores,   setIndicadores]   = useState<Indicador[]>([])
+  const [vertical,      setVertical]      = useState<Vertical>('salud_mental')
+  const [periodo,       setPeriodo]       = useState<Periodo>('MANHA')
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null)
-  const [loadingMap,   setLoadingMap]   = useState(true)
-  const [loadingVert,  setLoadingVert]  = useState(false)
-  const [mobilePanel,  setMobilePanel]  = useState(false)
+  const [loadingMap,    setLoadingMap]    = useState(true)
+  const [loadingVert,   setLoadingVert]   = useState(false)
+  const [mobilePanel,   setMobilePanel]   = useState(false)
 
-  // Load map data once
   useEffect(() => {
     Promise.all([fetchMapa(), fetchFlujos(), fetchCobertura()])
       .then(([mapa, fl, cob]) => {
@@ -44,14 +43,12 @@ export default function App() {
       .finally(() => setLoadingMap(false))
   }, [])
 
-  // Reload concentracion when period changes
   useEffect(() => {
     fetchConcentracion(periodo)
       .then(setConcentracion)
       .catch(() => setConcentracion([]))
   }, [periodo])
 
-  // Reload indicators when vertical changes
   useEffect(() => {
     setLoadingVert(true)
     fetchVertical(vertical)
@@ -71,8 +68,10 @@ export default function App() {
   }, [])
 
   return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: '#0c0f0f' }}>
-
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ height: '100dvh', background: '#0c0f0f' }}
+    >
       {/* ── MAP: absolute full screen ── */}
       <div className="absolute inset-0 z-0">
         <MapView
@@ -89,14 +88,12 @@ export default function App() {
         <NavDock vertical={vertical} onChange={handleVerticalChange} />
       </div>
 
-      {/* ── AI Query bar: top floating (adjusts for left dock on desktop) ── */}
-      <div className="absolute top-4 z-[400]
-                      left-4 right-4
-                      md:left-[88px] md:right-[400px]">
+      {/* ── AI Query bar: top floating ── */}
+      <div className="absolute top-4 z-[400] left-4 right-4 md:left-[88px] md:right-[400px]">
         <QueryBar />
       </div>
 
-      {/* ── DESKTOP ONLY: Period selector — bottom center scrubber ── */}
+      {/* ── DESKTOP: Period selector — bottom center ── */}
       <div
         className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-[400]
                    items-center gap-0.5 px-2 py-1.5 rounded-dock glass"
@@ -136,11 +133,10 @@ export default function App() {
       {/* ── MOBILE: Slide-up panel ── */}
       {mobilePanel && (
         <div
-          className="md:hidden absolute bottom-14 left-0 right-0 z-[450]
+          className="md:hidden absolute bottom-[112px] left-0 right-0 z-[450]
                      glass rounded-t-3xl overflow-hidden"
-          style={{ maxHeight: '58vh', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)' }}
+          style={{ maxHeight: '55vh', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)' }}
         >
-          {/* Drag handle */}
           <div className="flex justify-center pt-2.5 pb-1">
             <button
               onClick={() => setMobilePanel(false)}
@@ -148,7 +144,7 @@ export default function App() {
               style={{ background: 'rgba(255,255,255,0.2)' }}
             />
           </div>
-          <div className="overflow-y-auto scrollbar-glass" style={{ maxHeight: 'calc(58vh - 2rem)' }}>
+          <div className="overflow-y-auto scrollbar-glass" style={{ maxHeight: 'calc(55vh - 2rem)' }}>
             <VerticalPanel
               vertical={vertical}
               indicadores={indicadores}
@@ -161,6 +157,27 @@ export default function App() {
         </div>
       )}
 
+      {/* ── MOBILE: Period bar (always visible, above bottom nav) ── */}
+      <div
+        className="md:hidden absolute left-4 right-4 z-[400]
+                   flex items-center gap-0.5 px-2 py-1.5 rounded-dock glass justify-center"
+        style={{ bottom: mobilePanel ? '116px' : '68px' }}
+      >
+        {PERIODOS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriodo(p.id)}
+            className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+            style={{
+              background: periodo === p.id ? '#2fd9f4' : 'transparent',
+              color:      periodo === p.id ? '#00363e' : '#859397',
+            }}
+          >
+            {p.icon} {p.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── MOBILE: Bottom nav dock ── */}
       <div className="md:hidden absolute bottom-0 left-0 right-0 z-[500]">
         <NavDock
@@ -170,31 +187,9 @@ export default function App() {
         />
       </div>
 
-      {/* ── MOBILE: Period bar (above bottom nav when panel is open) ── */}
-      {!mobilePanel && (
-        <div
-          className="md:hidden absolute bottom-14 left-4 right-4 z-[400]
-                     flex items-center gap-0.5 px-2 py-1.5 rounded-dock glass justify-center"
-        >
-          {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPeriodo(p.id)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
-              style={{
-                background: periodo === p.id ? '#2fd9f4' : 'transparent',
-                color:      periodo === p.id ? '#00363e' : '#859397',
-              }}
-            >
-              {p.icon} {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Map legend: bottom right ── */}
+      {/* ── Map legend: desktop only ── */}
       <div
-        className="absolute bottom-6 right-4 md:right-[400px] z-[400] p-3 rounded-squircle glass text-xs"
+        className="hidden md:block absolute bottom-6 right-4 md:right-[400px] z-[400] p-3 rounded-squircle glass text-xs"
         style={{ minWidth: 140 }}
       >
         <p className="font-semibold mb-2" style={{ color: '#bbc9cd' }}>Concentración</p>
