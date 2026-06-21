@@ -1,4 +1,5 @@
-import { useMemo, useEffect, useRef, useState, useCallback } from 'react'
+import { useMemo, useEffect, useRef, useState, useCallback, type MutableRefObject } from 'react'
+import { LocateFixed } from 'lucide-react'
 import MapGL, { Layer, Source, useControl } from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import { MapboxOverlay } from '@deck.gl/mapbox'
@@ -13,6 +14,9 @@ interface Props {
   concentracion: ConcentracionItem[]
   cobertura: CoberturaItem[]
   onClusterClick?: (cluster: string) => void
+  resetTrigger?: number       // increment to fly back to overview
+  highlightClusters?: string[] // clusters from AI query — shown with gold outline
+  flyToRef?: MutableRefObject<((cluster: string) => void) | null>
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
@@ -56,7 +60,10 @@ function DeckGLOverlay(props: MapboxOverlayProps) {
   return null
 }
 
-export default function MapView({ antenas, flujos, concentracion, cobertura, onClusterClick }: Props) {
+export default function MapView({
+  antenas, flujos, concentracion, cobertura, onClusterClick,
+  resetTrigger = 0, highlightClusters = [], flyToRef,
+}: Props) {
   const [pulse, setPulse] = useState(1.0)
   const rafRef = useRef<number>(0)
   const mapRef = useRef<MapRef>(null)
@@ -95,10 +102,35 @@ export default function MapView({ antenas, flujos, concentracion, cobertura, onC
     [concentracion]
   )
 
+  // Flujos arrive pre-filtered at ≥300 from the API — just filter for valid coordinates
   const significantFlows = useMemo(
-    () => flujos.filter(f => f.n_usuarios > 120 && f.origem?.lat && f.destino?.lat).slice(0, 120),
+    () => flujos.filter(f => f.n_usuarios > 0 && f.origem?.lat && f.destino?.lat).slice(0, 120),
     [flujos]
   )
+
+  // One representative antena per highlighted cluster (from AI query results)
+  const highlightData = useMemo(() => {
+    if (!highlightClusters.length) return []
+    const set  = new Set(highlightClusters)
+    const seen = new Set<string>()
+    return antenas.filter(a => {
+      if (!set.has(a.cluster) || seen.has(a.cluster)) return false
+      seen.add(a.cluster)
+      return true
+    })
+  }, [antenas, highlightClusters])
+
+  const resetView = useCallback(() => {
+    mapRef.current?.flyTo({
+      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
+      zoom: INITIAL_VIEW.zoom, pitch: INITIAL_VIEW.pitch, bearing: INITIAL_VIEW.bearing, duration: 1800,
+    })
+  }, [])
+
+  // Fly back to overview whenever the trigger increments (from "Ver Mapa de Calor" / "Ver Zonas Afectadas")
+  useEffect(() => {
+    if (resetTrigger > 0) resetView()
+  }, [resetTrigger, resetView])
 
   const flyToCluster = useCallback((antenna: Antena) => {
     onClusterClick?.(antenna.cluster)
@@ -108,12 +140,14 @@ export default function MapView({ antenas, flujos, concentracion, cobertura, onC
     })
   }, [onClusterClick])
 
-  const resetView = useCallback(() => {
-    mapRef.current?.flyTo({
-      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
-      zoom: INITIAL_VIEW.zoom, pitch: INITIAL_VIEW.pitch, bearing: INITIAL_VIEW.bearing, duration: 1800,
-    })
-  }, [])
+  // Expose flyToCluster to parent via ref (used by AI query results)
+  useEffect(() => {
+    if (!flyToRef) return
+    flyToRef.current = (cluster: string) => {
+      const antenna = antenas.find(a => a.cluster === cluster)
+      if (antenna) flyToCluster(antenna)
+    }
+  }, [flyToRef, antenas, flyToCluster])
 
   const layers = useMemo(() => [
     ...(heatData.length > 0 ? [
@@ -171,7 +205,21 @@ export default function MapView({ antenas, flujos, concentracion, cobertura, onC
         getHeight: 0.3, widthMinPixels: 1, widthMaxPixels: 5, pickable: false,
       })
     ] : []),
-  ], [heatData, antenas, significantFlows, concMap, cobMap, pulse, flyToCluster])
+    // Gold outline layer for clusters returned by the AI query
+    ...(highlightData.length > 0 ? [
+      new ScatterplotLayer({
+        id: 'highlight', data: highlightData,
+        getPosition: (a: Antena) => [a.lon, a.lat],
+        getRadius: 900,
+        getFillColor: [253, 224, 71, 0],
+        getLineColor: [253, 224, 71, 220],
+        lineWidthMinPixels: 2, lineWidthMaxPixels: 3,
+        stroked: true, filled: true,
+        radiusUnits: 'meters', radiusMinPixels: 8,
+        pickable: false,
+      })
+    ] : []),
+  ], [heatData, antenas, significantFlows, highlightData, concMap, cobMap, pulse, flyToCluster])
 
   const getTooltip = useCallback((info: { object?: Antena }) => {
     const object = info.object
@@ -182,7 +230,7 @@ export default function MapView({ antenas, flujos, concentracion, cobertura, onC
       html: `<div style="font-family:Inter,sans-serif;background:rgba(18,20,20,0.97);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;color:#e2e2e2;min-width:190px;box-shadow:0 12px 40px rgba(0,0,0,0.8)">
         <div style="font-weight:700;font-size:13px;margin-bottom:2px;color:#8aebff">${(object.cluster ?? '').replace(/_/g,' ')}</div>
         ${object.municipio ? `<div style="color:#859397;font-size:11px;margin-bottom:8px">${object.municipio}</div>` : ''}
-        ${conc ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span style="color:#859397">Pessoas</span><strong style="color:#2fd9f4">${(conc.n_usuarios??0).toLocaleString('pt-BR')}</strong></div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span style="color:#859397">Período</span><span>${conc.periodo}</span></div>${conc.congestionamento_medio!=null?`<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#859397">Congestion</span><span>${conc.congestionamento_medio.toFixed(3)}</span></div>`:''}`:''}
+        ${conc ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span style="color:#859397">Pessoas</span><strong style="color:#2fd9f4">${(conc.n_usuarios??0).toLocaleString('pt-BR')}</strong></div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span style="color:#859397">Período</span><span>${conc.periodo}</span></div>${conc.congestionamento_medio!=null?`<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#859397">Congestão</span><span>${conc.congestionamento_medio.toFixed(3)}</span></div>`:''}`:''}
         ${cob ? (() => {
           const p3=((cob.pct_3g??0)*100),p4=((cob.pct_4g??0)*100),p5=((cob.pct_5g??0)*100)
           const bar=(pct:number,color:string)=>`<div style="flex:1;background:rgba(255,255,255,0.07);border-radius:3px;height:5px;overflow:hidden"><div style="width:${Math.min(100,pct)}%;height:100%;background:${color};border-radius:3px"></div></div>`
@@ -225,10 +273,10 @@ export default function MapView({ antenas, flujos, concentracion, cobertura, onC
           background: 'rgba(18,20,20,0.88)', border: '1px solid rgba(255,255,255,0.12)',
           color: '#859397', cursor: 'pointer', display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          fontSize: 17, backdropFilter: 'blur(12px)',
+          backdropFilter: 'blur(12px)',
         }}
       >
-        ⊙
+        <LocateFixed size={16} strokeWidth={1.5} />
       </button>
     </div>
   )
