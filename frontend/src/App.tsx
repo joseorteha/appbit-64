@@ -1,10 +1,13 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Moon, Sunrise, Sun, Sunset, X, type LucideIcon } from 'lucide-react'
 import {
   fetchMapa,
   fetchVertical,
   fetchFlujos,
   fetchConcentracion,
   fetchCobertura,
+  fetchDemograficos,
+  type DemograficoItem,
 } from './api/client'
 import type { Antena, Flujo, ConcentracionItem, Indicador, Vertical, Periodo, CoberturaItem } from './types'
 import MapView from './components/Map/MapView'
@@ -12,27 +15,41 @@ import VerticalPanel from './components/Sidebar/VerticalPanel'
 import QueryBar from './components/AIQuery/QueryBar'
 import NavDock from './components/Nav/NavDock'
 
-const PERIODOS: { id: Periodo; label: string; icon: string }[] = [
-  { id: 'MADRUGADA', label: 'Madrugada', icon: '🌙' },
-  { id: 'MANHA',     label: 'Manhã',     icon: '🌅' },
-  { id: 'TARDE',     label: 'Tarde',     icon: '☀️' },
-  { id: 'NOITE',     label: 'Noite',     icon: '🌆' },
+const PERIODOS: { id: Periodo; label: string; Icon: LucideIcon }[] = [
+  { id: 'MADRUGADA', label: 'Madrugada', Icon: Moon },
+  { id: 'MANHA',     label: 'Manhã',     Icon: Sunrise },
+  { id: 'TARDE',     label: 'Tarde',     Icon: Sun },
+  { id: 'NOITE',     label: 'Noite',     Icon: Sunset },
 ]
 
 export default function App() {
-  const [antenas,      setAntenas]      = useState<Antena[]>([])
-  const [flujos,       setFlujos]       = useState<Flujo[]>([])
-  const [concentracion,setConcentracion]= useState<ConcentracionItem[]>([])
-  const [cobertura,    setCobertura]    = useState<CoberturaItem[]>([])
-  const [indicadores,  setIndicadores]  = useState<Indicador[]>([])
-  const [vertical,     setVertical]     = useState<Vertical>('salud_mental')
-  const [periodo,      setPeriodo]      = useState<Periodo>('MANHA')
+  const [antenas,         setAntenas]         = useState<Antena[]>([])
+  const [flujos,          setFlujos]          = useState<Flujo[]>([])
+  const [concentracion,   setConcentracion]   = useState<ConcentracionItem[]>([])
+  const [cobertura,       setCobertura]       = useState<CoberturaItem[]>([])
+  const [indicadores,     setIndicadores]     = useState<Indicador[]>([])
+  const [vertical,        setVertical]        = useState<Vertical>('salud_mental')
+  const [periodo,         setPeriodo]         = useState<Periodo>('MANHA')
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null)
-  const [loadingMap,   setLoadingMap]   = useState(true)
-  const [loadingVert,  setLoadingVert]  = useState(false)
-  const [mobilePanel,  setMobilePanel]  = useState(false)
+  const [loadingMap,      setLoadingMap]      = useState(true)
+  const [loadingVert,     setLoadingVert]     = useState(false)
+  const [mobilePanel,     setMobilePanel]     = useState(false)
+  // Counter-based trigger so MapView can watch it in a useEffect
+  const [mapReset,        setMapReset]        = useState(0)
+  // Clusters returned by the AI query — highlighted on map
+  const [queryClusters,   setQueryClusters]   = useState<string[]>([])
+  // Jóvenes 18-24 del endpoint /demograficos para FormacionesContent
+  const [demograficos,    setDemograficos]    = useState<DemograficoItem[]>([])
+  // Ref to MapView's flyToCluster function (populated by MapView via useEffect)
+  const mapFlyToRef = useRef<((cluster: string) => void) | null>(null)
+  // First-load onboarding hint — auto-dismisses after 5s
+  const [showHint,        setShowHint]        = useState(true)
 
-  // Load map data once
+  useEffect(() => {
+    const t = setTimeout(() => setShowHint(false), 5000)
+    return () => clearTimeout(t)
+  }, [])
+
   useEffect(() => {
     Promise.all([fetchMapa(), fetchFlujos(), fetchCobertura()])
       .then(([mapa, fl, cob]) => {
@@ -44,14 +61,16 @@ export default function App() {
       .finally(() => setLoadingMap(false))
   }, [])
 
-  // Reload concentracion when period changes
+  useEffect(() => {
+    fetchDemograficos('18-24').then(setDemograficos).catch(() => setDemograficos([]))
+  }, [])
+
   useEffect(() => {
     fetchConcentracion(periodo)
       .then(setConcentracion)
       .catch(() => setConcentracion([]))
   }, [periodo])
 
-  // Reload indicators when vertical changes
   useEffect(() => {
     setLoadingVert(true)
     fetchVertical(vertical)
@@ -63,6 +82,8 @@ export default function App() {
   const handleVerticalChange = useCallback((v: Vertical) => {
     setVertical(v)
     setMobilePanel(true)
+    // Clear cluster selection so stale detail doesn't persist across verticals
+    setSelectedCluster(null)
   }, [])
 
   const handleClusterClick = useCallback((cluster: string) => {
@@ -70,9 +91,46 @@ export default function App() {
     setMobilePanel(true)
   }, [])
 
-  return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: '#0c0f0f' }}>
+  const handleClearCluster = useCallback(() => {
+    setSelectedCluster(null)
+  }, [])
 
+  // "Ver Mapa de Calor" / "Ver Zonas Afectadas": close mobile panel + reset camera to overview
+  const handleVerMapa = useCallback(() => {
+    setMobilePanel(false)
+    setMapReset(prev => prev + 1)
+  }, [])
+
+  // QueryBar sends back cluster names from AI results → highlight on map
+  const handleQueryResults = useCallback((clusters: string[]) => {
+    setQueryClusters(clusters)
+  }, [])
+
+  // QueryBar sends first cluster → MapView flies to it
+  const handleFlyToCluster = useCallback((cluster: string) => {
+    mapFlyToRef.current?.(cluster)
+  }, [])
+
+  const sharedPanelProps = {
+    vertical,
+    indicadores,
+    loading: loadingVert,
+    selectedCluster,
+    cobertura,
+    flujos,
+    demograficos,
+    onVerticalChange:  handleVerticalChange,
+    onVerMapa:         handleVerMapa,
+    onClearCluster:    handleClearCluster,
+    totalAntenas:      antenas.length,
+    clusters:          [...new Set(antenas.map(a => a.cluster))],
+  }
+
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ height: '100dvh', background: '#0c0f0f' }}
+    >
       {/* ── MAP: absolute full screen ── */}
       <div className="absolute inset-0 z-0">
         <MapView
@@ -81,6 +139,9 @@ export default function App() {
           concentracion={concentracion}
           cobertura={cobertura}
           onClusterClick={handleClusterClick}
+          resetTrigger={mapReset}
+          highlightClusters={queryClusters}
+          flyToRef={mapFlyToRef}
         />
       </div>
 
@@ -89,30 +150,29 @@ export default function App() {
         <NavDock vertical={vertical} onChange={handleVerticalChange} />
       </div>
 
-      {/* ── AI Query bar: top floating (adjusts for left dock on desktop) ── */}
-      <div className="absolute top-4 z-[400]
-                      left-4 right-4
-                      md:left-[88px] md:right-[400px]">
-        <QueryBar />
+      {/* ── AI Query bar: top floating ── */}
+      <div className="absolute top-4 z-[400] left-4 right-4 md:left-[88px] md:right-[400px]">
+        <QueryBar onResults={handleQueryResults} onFlyTo={handleFlyToCluster} />
       </div>
 
-      {/* ── DESKTOP ONLY: Period selector — bottom center scrubber ── */}
+      {/* ── DESKTOP: Period selector — bottom center ── */}
       <div
         className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-[400]
                    items-center gap-0.5 px-2 py-1.5 rounded-dock glass"
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
       >
-        {PERIODOS.map((p) => (
+        {PERIODOS.map(({ id, label, Icon }) => (
           <button
-            key={p.id}
-            onClick={() => setPeriodo(p.id)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            key={id}
+            onClick={() => setPeriodo(id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
             style={{
-              background: periodo === p.id ? '#2fd9f4' : 'transparent',
-              color:      periodo === p.id ? '#00363e' : '#859397',
+              background: periodo === id ? '#2fd9f4' : 'transparent',
+              color:      periodo === id ? '#00363e' : '#859397',
             }}
           >
-            {p.icon} {p.label}
+            <Icon size={13} strokeWidth={2} />
+            {label}
           </button>
         ))}
       </div>
@@ -123,24 +183,16 @@ export default function App() {
                    flex-col glass rounded-squircle overflow-hidden"
         style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
       >
-        <VerticalPanel
-          vertical={vertical}
-          indicadores={indicadores}
-          loading={loadingVert}
-          selectedCluster={selectedCluster}
-          cobertura={cobertura}
-          onVerticalChange={handleVerticalChange}
-        />
+        <VerticalPanel {...sharedPanelProps} />
       </div>
 
       {/* ── MOBILE: Slide-up panel ── */}
       {mobilePanel && (
         <div
-          className="md:hidden absolute bottom-14 left-0 right-0 z-[450]
+          className="md:hidden absolute bottom-[112px] left-0 right-0 z-[450]
                      glass rounded-t-3xl overflow-hidden"
-          style={{ maxHeight: '58vh', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)' }}
+          style={{ maxHeight: '55vh', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)' }}
         >
-          {/* Drag handle */}
           <div className="flex justify-center pt-2.5 pb-1">
             <button
               onClick={() => setMobilePanel(false)}
@@ -148,18 +200,33 @@ export default function App() {
               style={{ background: 'rgba(255,255,255,0.2)' }}
             />
           </div>
-          <div className="overflow-y-auto scrollbar-glass" style={{ maxHeight: 'calc(58vh - 2rem)' }}>
-            <VerticalPanel
-              vertical={vertical}
-              indicadores={indicadores}
-              loading={loadingVert}
-              selectedCluster={selectedCluster}
-              cobertura={cobertura}
-              onVerticalChange={handleVerticalChange}
-            />
+          <div className="overflow-y-auto scrollbar-glass" style={{ maxHeight: 'calc(55vh - 2rem)' }}>
+            <VerticalPanel {...sharedPanelProps} />
           </div>
         </div>
       )}
+
+      {/* ── MOBILE: Period bar (always visible, above bottom nav) ── */}
+      <div
+        className="md:hidden absolute left-4 right-4 z-[400]
+                   flex items-center gap-0.5 px-2 py-1.5 rounded-dock glass justify-center"
+        style={{ bottom: mobilePanel ? '116px' : '68px' }}
+      >
+        {PERIODOS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setPeriodo(id)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+            style={{
+              background: periodo === id ? '#2fd9f4' : 'transparent',
+              color:      periodo === id ? '#00363e' : '#859397',
+            }}
+          >
+            <Icon size={11} strokeWidth={2} />
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* ── MOBILE: Bottom nav dock ── */}
       <div className="md:hidden absolute bottom-0 left-0 right-0 z-[500]">
@@ -170,32 +237,10 @@ export default function App() {
         />
       </div>
 
-      {/* ── MOBILE: Period bar (above bottom nav when panel is open) ── */}
-      {!mobilePanel && (
-        <div
-          className="md:hidden absolute bottom-14 left-4 right-4 z-[400]
-                     flex items-center gap-0.5 px-2 py-1.5 rounded-dock glass justify-center"
-        >
-          {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPeriodo(p.id)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
-              style={{
-                background: periodo === p.id ? '#2fd9f4' : 'transparent',
-                color:      periodo === p.id ? '#00363e' : '#859397',
-              }}
-            >
-              {p.icon} {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Map legend: bottom right ── */}
+      {/* ── Map legend: desktop only ── */}
       <div
-        className="absolute bottom-6 right-4 md:right-[400px] z-[400] p-3 rounded-squircle glass text-xs"
-        style={{ minWidth: 140 }}
+        className="hidden md:block absolute bottom-6 right-4 md:right-[400px] z-[400] p-3 rounded-squircle glass text-xs"
+        style={{ minWidth: 155 }}
       >
         <p className="font-semibold mb-2" style={{ color: '#bbc9cd' }}>Concentración</p>
         {[
@@ -211,13 +256,43 @@ export default function App() {
         ))}
         <div className="mt-2 pt-2 flex items-center gap-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="w-5 h-0.5 rounded" style={{ background: '#2fd9f4', opacity: 0.5 }} />
-          <span style={{ color: '#859397' }}>Flujo OD</span>
+          <span style={{ color: '#859397' }}>Flujo OD (≥300 usuarios)</span>
         </div>
         <div className="mt-1 flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full border-2 shrink-0" style={{ borderColor: '#ef4444', background: 'transparent' }} />
-          <span style={{ color: '#859397' }}>Borde = % 3G</span>
+          <span style={{ color: '#859397' }}>Borde = exclusión 3G</span>
         </div>
+        {queryClusters.length > 0 && (
+          <div className="mt-1 flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full border-2 shrink-0" style={{ borderColor: '#fde047', background: 'transparent' }} />
+            <span style={{ color: '#fde047' }}>Resultado IA ({queryClusters.length})</span>
+          </div>
+        )}
       </div>
+
+      {/* ── Onboarding hint — auto-dismisses in 5s ── */}
+      {showHint && !loadingMap && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-[350]"
+          style={{ bottom: '30%' }}
+        >
+          <div
+            className="flex items-center gap-3 px-4 py-2.5 rounded-full text-xs glass"
+            style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)', whiteSpace: 'nowrap' }}
+          >
+            <span style={{ color: '#859397' }}>
+              <span style={{ color: '#2fd9f4', fontWeight: 600 }}>Explora el mapa</span>
+              {' · '}
+              <span style={{ color: '#2fd9f4', fontWeight: 600 }}>Consulta la IA</span>
+              {' · '}
+              <span style={{ color: '#2fd9f4', fontWeight: 600 }}>Analiza los 3 indicadores</span>
+            </span>
+            <button onClick={() => setShowHint(false)} style={{ color: '#3c494c' }}>
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Loading overlay ── */}
       {loadingMap && (

@@ -13,7 +13,7 @@ from app.models.flujos import Flujo
 from app.models.indicadores import Indicador
 from app.models.demograficos import Demografico
 from app.models.cobertura import Cobertura
-from app.routers import mapa, verticales, datos, flujos, concentracion, cobertura
+from app.routers import mapa, verticales, datos, flujos, concentracion, cobertura, demograficos
 from app.schemas import HealthOut
 from app.services.agent import agente_disponible
 
@@ -50,6 +50,7 @@ app.include_router(datos.router)
 app.include_router(flujos.router)
 app.include_router(concentracion.router)
 app.include_router(cobertura.router)
+app.include_router(demograficos.router)
 
 
 @app.get("/health", response_model=HealthOut, tags=["health"], summary="Estado del servicio")

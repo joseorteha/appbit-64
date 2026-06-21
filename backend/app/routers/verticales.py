@@ -19,6 +19,7 @@ VERTICALES_VALIDAS = {"salud_mental", "empleabilidad", "formaciones"}
 def get_vertical(
     vertical: str,
     cluster: str | None = Query(None, description="Filtrar por un cluster específico"),
+    periodo: str | None = Query(None, description="MADRUGADA | MANHA | TARDE | NOITE"),
     db: Session = Depends(get_db),
 ):
     """Indicadores sociales de una vertical del MVP.
@@ -34,6 +35,8 @@ def get_vertical(
     query = select(Indicador).where(Indicador.vertical == vertical)
     if cluster:
         query = query.where(Indicador.cluster == cluster)
+    if periodo:
+        query = query.where(Indicador.periodo == periodo.upper())
 
     indicadores = db.execute(query).scalars().all()
     return [IndicadorOut.model_validate(i) for i in indicadores]

@@ -105,6 +105,17 @@ class CoberturaOut(BaseModel):
     download_gb: float | None = None
 
 
+# ─────────────────────────── Demograficos ───────────────────────────
+class DemograficoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    cluster: str
+    income_cluster: str | None = None
+    age_group: str | None = None
+    n_usuarios: int | None = None
+    pct_flagship: float | None = None
+
+
 # ─────────────────────────── Health ───────────────────────────
 class HealthOut(BaseModel):
     status: str

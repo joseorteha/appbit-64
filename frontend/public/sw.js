@@ -1,4 +1,4 @@
-const CACHE = 'appbit64-v1'
+const CACHE = 'appbit64-v2'
 const STATIC = [
   '/',
   '/index.html',
@@ -20,9 +20,11 @@ self.addEventListener('activate', (e) => {
 })
 
 self.addEventListener('fetch', (e) => {
-  // Only cache GET requests; skip API calls
   if (e.request.method !== 'GET') return
   if (e.request.url.includes('localhost:8000')) return
+  // Skip Mapbox tile/API requests — they have their own caching
+  if (e.request.url.includes('api.mapbox.com')) return
+  if (e.request.url.includes('events.mapbox.com')) return
 
   e.respondWith(
     caches.match(e.request).then((cached) => {

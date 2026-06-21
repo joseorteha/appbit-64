@@ -11,9 +11,9 @@ router = APIRouter(prefix="/mapa", tags=["mapa"])
 
 @router.get("", response_model=MapaOut, summary="Antenas y clusters para el mapa")
 def get_mapa(db: Session = Depends(get_db)):
-    """Devuelve las 132 antenas con lat/lon y la lista de clusters únicos.
+    """Devuelve las antenas con lat/lon y la lista de clusters únicos.
 
-    Lo usa el frontend para pintar los marcadores en el mapa de Leaflet.
+    Lo usa el frontend para pintar los marcadores en el mapa de Mapbox + DeckGL.
     """
     antenas = db.execute(select(Antena)).scalars().all()
     clusters = sorted({a.cluster for a in antenas if a.cluster})

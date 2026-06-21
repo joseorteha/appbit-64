@@ -14,51 +14,49 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Leaflet dark theme ── */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-  background: #0c0f0f;
-}
-
-.leaflet-control-attribution {
+/* ── Mapbox dark theme overrides ── */
+.mapboxgl-ctrl-attrib {
   background: rgba(12, 15, 15, 0.8) !important;
   color: #859397 !important;
   font-size: 10px !important;
   backdrop-filter: blur(8px);
 }
 
-.leaflet-control-attribution a {
+.mapboxgl-ctrl-attrib a {
   color: #2fd9f4 !important;
 }
 
-.leaflet-control-zoom a {
+.mapboxgl-ctrl-group {
   background: rgba(30, 32, 32, 0.85) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: #e2e2e2 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(20px);
 }
 
-.leaflet-control-zoom a:hover {
-  background: rgba(47, 217, 244, 0.15) !important;
-  color: #2fd9f4 !important;
-}
-
-.leaflet-popup-content-wrapper {
-  background: rgba(30, 32, 32, 0.95) !important;
+.mapboxgl-ctrl-group button {
   color: #e2e2e2 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 1rem !important;
-  backdrop-filter: blur(40px) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
 }
 
-.leaflet-popup-tip {
-  background: rgba(30, 32, 32, 0.95) !important;
+.mapboxgl-ctrl-group button:hover {
+  background: rgba(47, 217, 244, 0.15) !important;
 }
 
-.leaflet-popup-close-button {
-  color: #859397 !important;
+/* DeckGL tooltip */
+.deck-tooltip {
+  pointer-events: none !important;
+}
+
+/* ── Safe-area utility ── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Scrollbar none ── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Glass utilities ── */

@@ -1,14 +1,21 @@
 {
   "name": "App BiT 64 — Panel de Dados Públicos",
   "short_name": "App BiT 64",
-  "description": "Panel B2G para detección de zonas de exclusión digital en Florianópolis",
+  "description": "Panel B2G para detecção de zonas de exclusão digital em Florianópolis",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0c0f0f",
   "theme_color": "#0c0f0f",
   "orientation": "any",
   "lang": "es",
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
@@ -20,6 +27,26 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Salud Mental",
+      "short_name": "Salud",
+      "url": "/?vertical=salud_mental",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Empleabilidad",
+      "short_name": "Empleo",
+      "url": "/?vertical=empleabilidad",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Formaciones",
+      "short_name": "Formación",
+      "url": "/?vertical=formaciones",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["productivity", "utilities"],
