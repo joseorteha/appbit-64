@@ -94,3 +94,21 @@ export interface AppConfig {
   ciudad: string
   pais: string
 }
+
+/**
+ * Respuesta paginada genérica de la API.
+ * Permite reutilizar la misma estructura para cualquier endpoint con paginación.
+ */
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  pagina: number
+  por_pagina: number
+  total_paginas: number
+}
+
+/** Parámetros comunes para solicitudes paginadas */
+export interface PaginacionParams {
+  pagina?: number
+  por_pagina?: number
+}
