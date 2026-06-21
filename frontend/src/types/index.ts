@@ -47,6 +47,9 @@ export interface ConcentracionItem {
   n_usuarios: number | null
   congestionamento_medio: number | null
   drop_pct_medio: number | null
+  n_sessoes?: number | null
+  download_bytes?: number | null
+  upload_bytes?: number | null
 }
 
 export interface CoberturaItem {
@@ -76,3 +79,18 @@ export interface DatosResponse {
 
 export type Vertical = 'salud_mental' | 'empleabilidad' | 'formaciones'
 export type Periodo = 'MADRUGADA' | 'MANHA' | 'TARDE' | 'NOITE'
+
+export interface VerticalConfig {
+  id: Vertical
+  label: string
+  icon: string
+  color: string
+  descripcion: string
+}
+
+export interface AppConfig {
+  version: string
+  nombre: string
+  ciudad: string
+  pais: string
+}
