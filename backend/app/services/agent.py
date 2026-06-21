@@ -166,9 +166,34 @@ def _llm_agent(consulta: str, filtros: dict) -> DatosResponse | None:
                 ti = action.tool_input
                 sql_generado = ti.get("query") if isinstance(ti, dict) else str(ti)
 
+        datos_llm: list = []
+        for _action, obs in resultado.get("intermediate_steps", []):
+            if isinstance(obs, str) and obs.strip().startswith("["):
+                try:
+                    import ast
+                    parsed = ast.literal_eval(obs.strip())
+                    if isinstance(parsed, list):
+                        for row in parsed:
+                            if isinstance(row, (list, tuple)) and len(row) >= 2:
+                                datos_llm.append({
+                                    "cluster": str(row[0]),
+                                    "valor": float(row[1] or 0),
+                                    "metrica": "llm_result",
+                                    "fuente": "Vísent CDRView",
+                                })
+                            elif isinstance(row, dict) and "cluster" in row:
+                                datos_llm.append({
+                                    "cluster": row["cluster"],
+                                    "valor": float(row.get("valor", row.get("n_usuarios", 0)) or 0),
+                                    "metrica": "llm_result",
+                                    "fuente": "Vísent CDRView",
+                                })
+                except Exception:
+                    pass
+
         return DatosResponse(
             respuesta_ia=resultado.get("output", "Sin respuesta del agente."),
-            datos=[],
+            datos=datos_llm,
             fuentes=FUENTES,
             sql_generado=sql_generado,
         )
