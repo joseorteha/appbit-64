@@ -30,7 +30,7 @@ def get_concentracion(
         query = query.where(Concentracion.periodo == periodo.upper())
     if cluster:
         query = query.where(Concentracion.cluster == cluster)
-    query = query.limit(limit)
+    query = query.order_by(Concentracion.n_usuarios.desc()).limit(limit)
 
     registros = db.execute(query).scalars().all()
     return [ConcentracionOut.model_validate(r) for r in registros]
