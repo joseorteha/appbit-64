@@ -139,12 +139,6 @@ def seed_indicadores():
             "es_sintetico": c not in conc_manha,
         })
         rows.append({
-            "cluster": c, "vertical": "empleabilidad",
-            "metrica": "movilidad_trabajo",
-            "valor": round(random.uniform(0.1, 0.9), 3),
-            "periodo": "MANHA", "fuente": "sintético", "es_sintetico": True,
-        })
-        rows.append({
             "cluster": c, "vertical": "formaciones",
             "metrica": "poblacion_joven_sin_conectividad",
             "valor": round(random.uniform(50, 3000), 0),
@@ -155,6 +149,44 @@ def seed_indicadores():
     _truncate("indicadores")
     df.to_sql("indicadores", engine, if_exists="append", index=False)
     print(f"  indicadores: {len(df)} filas")
+
+
+def seed_cobertura():
+    """Cobertura sintética por cluster — fallback hasta que corra el ETL real."""
+    import random
+    random.seed(42)
+
+    with engine.begin() as conn:
+        clusters = [r[0] for r in conn.execute(
+            text("SELECT DISTINCT cluster FROM antenas")
+        ).fetchall()]
+        existing = conn.execute(text("SELECT COUNT(*) FROM cobertura")).scalar()
+
+    if existing:
+        print(f"  cobertura: ya tiene {existing} filas, omitido")
+        return
+    if not clusters:
+        print("  cobertura: no hay clusters (carga antenas primero), omitido")
+        return
+
+    rows = []
+    for c in clusters:
+        pct_3g = round(random.uniform(0.15, 0.70), 3)
+        pct_4g = round(random.uniform(0.20, 0.65), 3)
+        pct_5g = round(max(0, 1 - pct_3g - pct_4g), 3)
+        rows.append({
+            "cluster": c,
+            "total_sessoes": random.randint(8_000, 120_000),
+            "pct_3g": pct_3g, "pct_4g": pct_4g, "pct_5g": pct_5g,
+            "drop_pct_medio": round(random.uniform(0.05, 0.25), 3),
+            "congestionamento_medio": round(random.uniform(0.2, 0.8), 3),
+            "download_gb": round(random.uniform(50, 8000), 1),
+        })
+
+    df = pd.DataFrame(rows)
+    _truncate("cobertura")
+    df.to_sql("cobertura", engine, if_exists="append", index=False)
+    print(f"  cobertura: {len(df)} filas sintéticas")
 
 
 def main():
@@ -172,6 +204,7 @@ def main():
     seed_flujos()
     seed_demograficos()
     seed_indicadores()
+    seed_cobertura()
     print("\n[OK] Seed completado.")
 
 
