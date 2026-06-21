@@ -22,7 +22,20 @@ export default {
         outline: {
           DEFAULT: '#859397',
           dim:     '#3c494c',
+          variant: '#3c494c',
         },
+        // MD3 tokens used by Spatial Glass mockups
+        secondary: '#ffb2b7',
+        error: '#ffb4ab',
+        'error-container': '#93000a',
+        'tertiary-container': '#ffb13b',
+        'on-surface': '#e2e2e2',
+        'on-surface-variant': '#bbc9cd',
+        'surface-container': '#1e2020',
+        'surface-container-high': '#282a2b',
+        'surface-container-highest': '#333535',
+        'surface-container-lowest': '#0c0f0f',
+        'surface-container-low': '#1a1c1c',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
