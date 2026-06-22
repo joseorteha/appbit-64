@@ -1,11 +1,11 @@
-import { useMemo, useEffect, useRef, useState, useCallback, type MutableRefObject } from 'react'
+import { useMemo, useEffect, useRef, useState, useCallback, Component, type MutableRefObject } from 'react'
+import type { ReactNode } from 'react'
 import { LocateFixed } from 'lucide-react'
 import MapGL, { Layer, Source, useControl } from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import type { MapboxOverlayProps } from '@deck.gl/mapbox'
 import { ScatterplotLayer, ArcLayer } from '@deck.gl/layers'
-import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import type { Antena, Flujo, ConcentracionItem, CoberturaItem } from '../../types'
 
 interface Props {
@@ -14,23 +14,28 @@ interface Props {
   concentracion: ConcentracionItem[]
   cobertura: CoberturaItem[]
   onClusterClick?: (cluster: string) => void
-  resetTrigger?: number       // increment to fly back to overview
-  highlightClusters?: string[] // clusters from AI query — shown with gold outline
+  resetTrigger?: number
+  highlightClusters?: string[]
   flyToRef?: MutableRefObject<((cluster: string) => void) | null>
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 
-// HeatmapLayer requires WebGL 2.0 (#version 300 es + UBOs). Some mobile GPUs
-// fail shader compilation and leak the GLSL source to the screen as an error.
-const SUPPORTS_WEBGL2 = (() => {
-  try {
-    const canvas = document.createElement('canvas')
-    return !!canvas.getContext('webgl2')
-  } catch {
-    return false
+// Safety net: catches any remaining deck.gl WebGL errors before they bubble to
+// React's root and leak raw GLSL shader source onto the screen.
+class DeckErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(err: Error) {
+    if (!err.message?.includes('#version') && !err.message?.includes('WebGL')) {
+      console.error('[MapView] deck.gl error:', err)
+    }
   }
-})()
+  render() { return this.state.failed ? null : this.props.children }
+}
 
 const INITIAL_VIEW = {
   longitude: -48.55, latitude: -27.595, zoom: 11, pitch: 52, bearing: -15,
@@ -48,7 +53,24 @@ const BUILDINGS_LAYER: any = {
   },
 }
 
-interface HeatPoint { position: [number, number]; weight: number }
+// Mapbox native heatmap paint — mirrors the former deck.gl HeatmapLayer color range.
+// Uses Mapbox's own GPU pipeline which works on all devices without WebGL 2.0.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const HEAT_PAINT: any = {
+  'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 2000, 1],
+  'heatmap-intensity': 1.1,
+  'heatmap-radius': 55,
+  'heatmap-opacity': 0.85,
+  'heatmap-color': [
+    'interpolate', ['linear'], ['heatmap-density'],
+    0,   'rgba(34,197,94,0)',
+    0.1, 'rgba(34,197,94,0.4)',
+    0.3, 'rgba(234,179,8,0.65)',
+    0.5, 'rgba(249,115,22,0.75)',
+    0.7, 'rgba(239,68,68,0.88)',
+    1.0, 'rgba(153,27,27,1)',
+  ],
+}
 
 function heatRgba(n: number): [number, number, number, number] {
   if (n > 2000) return [239, 68, 68, 230]
@@ -106,20 +128,23 @@ export default function MapView({
     return m
   }, [cobertura])
 
-  const heatData = useMemo<HeatPoint[]>(() =>
-    concentracion
+  // GeoJSON for the Mapbox-native heatmap layer (works on all devices/GPUs)
+  const heatGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: concentracion
       .filter(c => c.lat != null && c.lon != null && (c.n_usuarios ?? 0) > 0)
-      .map(c => ({ position: [c.lon!, c.lat!], weight: c.n_usuarios! })),
-    [concentracion]
-  )
+      .map(c => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [c.lon!, c.lat!] },
+        properties: { weight: c.n_usuarios! },
+      })),
+  }), [concentracion])
 
-  // Flujos arrive pre-filtered at ≥300 from the API — just filter for valid coordinates
   const significantFlows = useMemo(
     () => flujos.filter(f => f.n_usuarios > 0 && f.origem?.lat && f.destino?.lat).slice(0, 120),
     [flujos]
   )
 
-  // One representative antena per highlighted cluster (from AI query results)
   const highlightData = useMemo(() => {
     if (!highlightClusters.length) return []
     const set  = new Set(highlightClusters)
@@ -138,7 +163,6 @@ export default function MapView({
     })
   }, [])
 
-  // Fly back to overview whenever the trigger increments (from "Ver Mapa de Calor" / "Ver Zonas Afectadas")
   useEffect(() => {
     if (resetTrigger > 0) resetView()
   }, [resetTrigger, resetView])
@@ -151,7 +175,6 @@ export default function MapView({
     })
   }, [onClusterClick])
 
-  // Expose flyToCluster to parent via ref (used by AI query results)
   useEffect(() => {
     if (!flyToRef) return
     flyToRef.current = (cluster: string) => {
@@ -160,19 +183,10 @@ export default function MapView({
     }
   }, [flyToRef, antenas, flyToCluster])
 
+  // deck.gl layers: ScatterplotLayer + ArcLayer only.
+  // HeatmapLayer removed — replaced by Mapbox-native <Layer type="heatmap"> below,
+  // which uses Mapbox's own GPU pipeline and works identically on all devices.
   const layers = useMemo(() => [
-    ...(heatData.length > 0 && SUPPORTS_WEBGL2 ? [
-      new HeatmapLayer({
-        id: 'heat', data: heatData,
-        getPosition: (d: HeatPoint) => d.position,
-        getWeight: (d: HeatPoint) => d.weight,
-        radiusPixels: 55, intensity: 1.1, threshold: 0.04,
-        colorRange: [
-          [34,197,94,0],[34,197,94,100],[234,179,8,170],
-          [249,115,22,200],[239,68,68,225],[153,27,27,255],
-        ] as [number,number,number,number][],
-      })
-    ] : []),
     new ScatterplotLayer({
       id: 'halo', data: antenas,
       getPosition: (a: Antena) => [a.lon, a.lat],
@@ -216,7 +230,6 @@ export default function MapView({
         getHeight: 0.3, widthMinPixels: 1, widthMaxPixels: 5, pickable: false,
       })
     ] : []),
-    // Gold outline layer for clusters returned by the AI query
     ...(highlightData.length > 0 ? [
       new ScatterplotLayer({
         id: 'highlight', data: highlightData,
@@ -230,7 +243,7 @@ export default function MapView({
         pickable: false,
       })
     ] : []),
-  ], [heatData, antenas, significantFlows, highlightData, concMap, cobMap, pulse, flyToCluster])
+  ], [antenas, significantFlows, highlightData, concMap, cobMap, pulse, flyToCluster])
 
   const getTooltip = useCallback((info: { object?: Antena }) => {
     const object = info.object
@@ -271,10 +284,25 @@ export default function MapView({
         terrain={{ source: 'mapbox-dem', exaggeration: 1.4 }}
         style={{ width: '100%', height: '100%' }}
       >
+        {/* Terrain DEM + 3D buildings — Mapbox-native, supported on all devices */}
         <Source id="mapbox-dem" type="raster-dem" url="mapbox://mapbox.mapbox-terrain-dem-v1" tileSize={512} maxzoom={14} />
         <Layer {...BUILDINGS_LAYER} />
-        <DeckGLOverlay layers={layers} getTooltip={getTooltip} />
+
+        {/* Heatmap via Mapbox-native layer — replaces the former deck.gl HeatmapLayer.
+            Mapbox's pipeline handles WebGL compatibility across all GPUs/browsers. */}
+        {heatGeoJSON.features.length > 0 && (
+          <Source id="heat-src" type="geojson" data={heatGeoJSON}>
+            <Layer id="heat-mapbox" type="heatmap" paint={HEAT_PAINT} />
+          </Source>
+        )}
+
+        {/* deck.gl overlay: ScatterplotLayer (circles + halos) + ArcLayer (flows).
+            DeckErrorBoundary prevents any future deck.gl errors from leaking to screen. */}
+        <DeckErrorBoundary>
+          <DeckGLOverlay layers={layers} getTooltip={getTooltip} />
+        </DeckErrorBoundary>
       </MapGL>
+
       <button
         onClick={resetView}
         title="Volver a vista general"
