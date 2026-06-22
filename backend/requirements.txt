@@ -12,4 +12,8 @@ pandas==2.2.3
 # PostgreSQL (producción). En local con SQLite no es estrictamente necesario.
 psycopg2-binary==2.9.10
 
+# Auth — Google OAuth + JWT
+python-jose[cryptography]==3.3.0
+httpx==0.28.1
+
 # Agente IA (opcional) — ver requirements-ai.txt

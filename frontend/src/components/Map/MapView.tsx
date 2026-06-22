@@ -175,7 +175,7 @@ export default function MapView({
       lineWidthMinPixels: 1, lineWidthMaxPixels: 2,
       stroked: true, filled: false, pickable: false,
       radiusUnits: 'meters', radiusMinPixels: 3,
-      updateTriggers: { getRadius: [pulse], getLineColor: [pulse] },
+      updateTriggers: { getRadius: [pulse, concMap], getLineColor: [cobMap] },
     }),
     new ScatterplotLayer({
       id: 'dots', data: antenas,
@@ -193,7 +193,7 @@ export default function MapView({
       stroked: true, pickable: true,
       radiusUnits: 'meters', radiusMinPixels: 4, radiusMaxPixels: 26,
       onClick: (info: { object?: Antena }) => { if (info.object) flyToCluster(info.object) },
-      updateTriggers: { getRadius: [pulse] },
+      updateTriggers: { getRadius: [pulse, concMap], getFillColor: [concMap] },
     }),
     ...(significantFlows.length > 0 ? [
       new ArcLayer({
