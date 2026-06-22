@@ -38,7 +38,9 @@ export default {
         'surface-container-low': '#1a1c1c',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans:    ['Space Grotesk', 'system-ui', 'sans-serif'],
+        mono:    ['DM Mono', 'ui-monospace', 'monospace'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         squircle: '1.5rem',
