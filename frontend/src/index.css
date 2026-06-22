@@ -63,6 +63,25 @@ html, body, #root {
   --amber:     #f59e0b;
   --red:       #ef4444;
   --green:     #22c55e;
+
+  /* Escala tipográfica */
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 13px;
+  --text-md:   15px;
+  --text-lg:   20px;
+  --text-xl:   28px;
+  --text-hero: clamp(2rem, 5vw, 3.5rem);
+
+  /* Radios — 3 valores, nada más */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* Sombras */
+  --shadow-card:  0 2px 12px rgba(0,0,0,0.35);
+  --shadow-panel: 0 8px 32px rgba(0,0,0,0.55);
+  --shadow-float: 0 16px 48px rgba(0,0,0,0.7);
 }
 
 /* ── Glass — solo para overlays sobre el mapa ── */

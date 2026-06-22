@@ -19,7 +19,7 @@ export default function AppNav() {
     <>
       {/* ── Desktop top bar ── */}
       <nav
-        className="hidden md:flex fixed top-0 left-0 right-0 z-[500] h-14 items-center px-5 gap-0"
+        className="hidden md:flex fixed top-0 left-0 right-0 z-[500] h-12 items-center px-5 gap-0"
         style={{
           background: 'rgba(14,16,18,0.88)',
           backdropFilter: 'blur(24px)',
@@ -49,7 +49,7 @@ export default function AppNav() {
               to={to}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={({ isActive }) => isActive
-                ? { color: '#2fd9f4', background: 'rgba(47,217,244,0.08)' }
+                ? { color: '#dde4e6', background: 'rgba(47,217,244,0.10)', borderBottom: '2px solid #2fd9f4' }
                 : { color: '#7a8c91' }
               }
             >
@@ -107,7 +107,7 @@ export default function AppNav() {
             to={to}
             className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all"
             style={({ isActive }) => isActive
-              ? { color: '#2fd9f4' }
+              ? { color: '#2fd9f4', background: 'rgba(47,217,244,0.12)', borderRadius: 10 }
               : { color: '#3f5258' }
             }
           >

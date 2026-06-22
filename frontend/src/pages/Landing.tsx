@@ -7,11 +7,9 @@ import { useAuth } from '../context/AuthContext'
 const HAS_GOOGLE = !!(import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)
 
 const STATS = [
-  { val: '132',    label: 'antenas Claro'      },
-  { val: '23',     label: 'clusters urbanos'    },
-  { val: '16.8M',  label: 'eventos CDR'         },
-  { val: '200k',   label: 'assinantes'          },
-  { val: '3',      label: 'verticales sociales' },
+  { val: '132',   label: 'antenas monitoreadas' },
+  { val: '16.8M', label: 'eventos CDR analizados' },
+  { val: '3',     label: 'verticales de impacto social' },
 ]
 
 const FEATURES = [
@@ -83,54 +81,88 @@ export default function Landing() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-20 md:py-32">
+      <section className="relative z-10 flex-1 px-6 md:px-12 py-16 md:py-24">
+        <div className="max-w-5xl mx-auto md:grid md:grid-cols-5 md:gap-12 md:items-center">
 
-        {/* Glow sutil — centrado, no invasivo */}
-        <div className="absolute pointer-events-none" style={{
-          top: '20%', left: '50%', transform: 'translateX(-50%)',
-          width: 600, height: 400,
-          background: 'radial-gradient(ellipse, rgba(47,217,244,0.05) 0%, transparent 70%)',
-        }} />
+          {/* Left — contenido editorial (3/5) */}
+          <div className="md:col-span-3 flex flex-col items-start">
+            <div className="inline-flex items-center gap-2 mb-7 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ background: '#1b1f21', border: '1px solid rgba(255,255,255,0.08)', color: '#7a8c91' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+              Panel B2G — Florianópolis, SC · Brasil
+            </div>
 
-        <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{ background: '#1b1f21', border: '1px solid rgba(255,255,255,0.08)', color: '#7a8c91' }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-          Panel B2G — Florianópolis, SC · Brasil
-        </div>
+            <h1 className="font-bold leading-none mb-5"
+              style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em', color: '#dde4e6' }}>
+              Decisiones públicas<br />
+              basadas en <span style={{ color: '#2fd9f4' }}>evidencia real</span>.
+            </h1>
 
-        <h1 className="font-bold leading-none mb-6 max-w-2xl"
-          style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.03em', color: '#dde4e6' }}>
-          Decisiones públicas<br />
-          basadas en <span style={{ color: '#2fd9f4' }}>evidencia real</span>.
-        </h1>
+            <p className="text-sm mb-8 leading-relaxed max-w-md" style={{ color: '#7a8c91' }}>
+              Cruzamos datos de movilidad CDR con indicadores sociales para identificar
+              zonas de exclusión digital antes de lanzar programas municipales.
+            </p>
 
-        <p className="text-base max-w-lg mb-10 leading-relaxed" style={{ color: '#7a8c91' }}>
-          Cruzamos datos de movilidad CDR con indicadores sociales para que gestores
-          municipales identifiquen zonas de exclusión digital antes de lanzar programas.
-        </p>
+            <div className="flex flex-col items-start gap-3">
+              {HAS_GOOGLE ? (
+                <GoogleLoginButton onError={setError} size="lg" />
+              ) : (
+                <button onClick={handleDevLogin}
+                  className="flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                  style={{ background: '#2fd9f4', color: '#003640' }}>
+                  Entrar en modo demo
+                  <ArrowRight size={14} />
+                </button>
+              )}
+              {error && <p className="text-xs" style={{ color: '#fca5a5' }}>{error}</p>}
+              <p className="text-xs" style={{ color: '#3f5258' }}>
+                {HAS_GOOGLE ? 'Solo para gestores autorizados del programa App BiT' : 'Configura VITE_GOOGLE_CLIENT_ID para login real'}
+              </p>
+            </div>
+          </div>
 
-        <div className="flex flex-col items-center gap-3">
-          {HAS_GOOGLE ? (
-            <GoogleLoginButton onError={setError} size="lg" />
-          ) : (
-            <button onClick={handleDevLogin}
-              className="flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-              style={{ background: '#2fd9f4', color: '#003640' }}>
-              Entrar en modo demo
-              <ArrowRight size={14} />
-            </button>
-          )}
-          {error && <p className="text-xs" style={{ color: '#fca5a5' }}>{error}</p>}
-          <p className="text-xs" style={{ color: '#3f5258' }}>
-            {HAS_GOOGLE ? 'Solo para gestores autorizados del programa App BiT' : 'Configura VITE_GOOGLE_CLIENT_ID para login real'}
-          </p>
+          {/* Right — visual abstracto de red/clusters (2/5) */}
+          <div className="hidden md:flex md:col-span-2 items-center justify-center">
+            <svg viewBox="0 0 280 260" fill="none" xmlns="http://www.w3.org/2000/svg"
+              style={{ width: '100%', maxWidth: 280, opacity: 0.85 }}>
+              {/* Conexiones */}
+              <line x1="140" y1="130" x2="60" y2="60"   stroke="#2fd9f4" strokeWidth="0.8" strokeOpacity="0.25"/>
+              <line x1="140" y1="130" x2="220" y2="70"  stroke="#2fd9f4" strokeWidth="0.8" strokeOpacity="0.25"/>
+              <line x1="140" y1="130" x2="80" y2="200"  stroke="#2fd9f4" strokeWidth="0.8" strokeOpacity="0.25"/>
+              <line x1="140" y1="130" x2="210" y2="195" stroke="#2fd9f4" strokeWidth="0.8" strokeOpacity="0.25"/>
+              <line x1="60"  y1="60"  x2="220" y2="70"  stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"/>
+              <line x1="80"  y1="200" x2="210" y2="195" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"/>
+              <line x1="60"  y1="60"  x2="80"  y2="200" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>
+              {/* Nodo central — crítico */}
+              <circle cx="140" cy="130" r="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444" strokeWidth="1.5"/>
+              <circle cx="140" cy="130" r="6"  fill="#ef4444" fillOpacity="0.8"/>
+              {/* Cluster NW */}
+              <circle cx="60"  cy="60"  r="12" fill="rgba(47,217,244,0.08)" stroke="#2fd9f4" strokeWidth="1"/>
+              <circle cx="60"  cy="60"  r="4"  fill="#2fd9f4" fillOpacity="0.6"/>
+              {/* Cluster NE */}
+              <circle cx="220" cy="70"  r="10" fill="rgba(34,197,94,0.08)"  stroke="#22c55e" strokeWidth="1"/>
+              <circle cx="220" cy="70"  r="3.5" fill="#22c55e" fillOpacity="0.6"/>
+              {/* Cluster SW */}
+              <circle cx="80"  cy="200" r="11" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1"/>
+              <circle cx="80"  cy="200" r="4"  fill="#f59e0b" fillOpacity="0.6"/>
+              {/* Cluster SE */}
+              <circle cx="210" cy="195" r="9"  fill="rgba(34,197,94,0.08)"  stroke="#22c55e" strokeWidth="1"/>
+              <circle cx="210" cy="195" r="3"  fill="#22c55e" fillOpacity="0.6"/>
+              {/* Labels */}
+              <text x="140" y="158" textAnchor="middle" fill="#ef4444" fontSize="8" fontFamily="monospace" opacity="0.7">68% 3G</text>
+              <text x="60"  y="46"  textAnchor="middle" fill="#2fd9f4" fontSize="7" fontFamily="monospace" opacity="0.6">cluster_07</text>
+              <text x="220" y="56"  textAnchor="middle" fill="#22c55e" fontSize="7" fontFamily="monospace" opacity="0.6">cluster_12</text>
+              {/* Glow fondo */}
+              <circle cx="140" cy="130" r="60" fill="radial-gradient(circle, rgba(239,68,68,0.03) 0%, transparent 70%)" fillOpacity="0.03"/>
+            </svg>
+          </div>
         </div>
       </section>
 
       {/* ── Stats — línea horizontal, no cards ── */}
       <section className="relative z-10 px-6 md:px-12 pb-16">
         <div className="max-w-3xl mx-auto" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '2rem' }}>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-6 text-center">
+          <div className="grid grid-cols-3 gap-6 text-center">
             {STATS.map(({ val, label }) => (
               <div key={label}>
                 <div className="font-mono text-xl font-medium mb-1" style={{ color: '#dde4e6', letterSpacing: '-0.03em' }}>{val}</div>

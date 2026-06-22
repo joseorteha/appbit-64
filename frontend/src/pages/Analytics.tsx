@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
+  PieChart, Pie, Cell, LineChart, Line, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import { BarChart2, ChevronUp, ChevronDown, Map } from 'lucide-react'
 import { fetchCobertura, fetchFlujos, fetchConcentracion } from '../api/client'
@@ -23,11 +23,13 @@ const CHART_TOOLTIP_STYLE = {
   },
 }
 
-function GlassCard({ children, title, className = '' }: { children: React.ReactNode; title: string; className?: string }) {
+function GlassCard({ children, title, desc, className = '' }: { children: React.ReactNode; title: string; desc?: string; className?: string }) {
   return (
     <div className={`rounded-2xl p-5 ${className}`}
       style={{ background: '#1b1f21', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <p className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: '#7a8c91' }}>{title}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#7a8c91' }}>{title}</p>
+      {desc && <p className="text-[11px] mb-4 leading-snug" style={{ color: '#3f5258' }}>{desc}</p>}
+      {!desc && <div className="mb-4" />}
       {children}
     </div>
   )
@@ -195,7 +197,7 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 
         {/* 1. Exclusión Digital por Cluster */}
-        <GlassCard title="Exclusión Digital por Cluster (% sesiones 3G)" className="lg:col-span-2">
+        <GlassCard title="Exclusión Digital por Cluster" desc="% de sesiones en 3G — por encima del 60% el cluster no puede soportar telesalud." className="lg:col-span-2">
           <div style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={exclusionData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -203,6 +205,8 @@ export default function Analytics() {
                 <XAxis dataKey="cluster" tick={{ fill: '#7a8c91', fontSize: 9 }} interval={0} angle={-35} textAnchor="end" height={48} />
                 <YAxis tick={{ fill: '#7a8c91', fontSize: 10 }} tickFormatter={v => `${v}%`} />
                 <Tooltip {...CHART_TOOLTIP_STYLE} formatter={(v) => [`${v ?? 0}%`, '']} />
+                <ReferenceLine y={60} stroke={COLORS.danger} strokeDasharray="4 4"
+                  label={{ value: 'Umbral crítico', fill: '#ef4444', fontSize: 9, position: 'insideTopRight' }} />
                 <Bar dataKey="pct_3g" name="3G %" radius={[4,4,0,0]}>
                   {exclusionData.map((entry) => (
                     <Cell key={entry.cluster} fill={entry.pct_3g > 60 ? COLORS.danger : entry.pct_3g > 40 ? COLORS.warn : '#22c55e'} />
@@ -214,7 +218,7 @@ export default function Analytics() {
         </GlassCard>
 
         {/* 2. Concentración por Periodo */}
-        <GlassCard title="Concentración promedio por Período">
+        <GlassCard title="Concentración por Período" desc="Promedio de usuarios activos por franja horaria en todos los clusters.">
           <div style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={concentracion} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -229,7 +233,7 @@ export default function Analytics() {
         </GlassCard>
 
         {/* 3. Distribución red móvil — Pie */}
-        <GlassCard title="Distribución de Red Móvil (promedio todos los clusters)">
+        <GlassCard title="Distribución de Red Móvil" desc="Promedio de tecnología de acceso en todos los clusters — 3G indica exclusión digital.">
           <div style={{ height: 220 }} className="flex items-center">
             <div style={{ flex: 1, height: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -256,7 +260,7 @@ export default function Analytics() {
         </GlassCard>
 
         {/* 4. Top flujos */}
-        <GlassCard title="Top Flujos OD por usuarios" className="lg:col-span-2">
+        <GlassCard title="Top Flujos OD" desc="Corredores origen–destino con mayor densidad de usuarios — identifica brechas de movilidad laboral." className="lg:col-span-2">
           <div style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart layout="vertical" data={topFlujos} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
@@ -280,12 +284,12 @@ export default function Analytics() {
             Datos por Cluster — cobertura
           </p>
           <span className="text-[10px]" style={{ color: '#3f5258' }}>
-            {cobertura.length} clusters · click en encabezado para ordenar
+            {cobertura.length} clusters · click en fila para ver en mapa · encabezado para ordenar
           </span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ maxHeight: 400 }}>
           <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
-            <thead>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#1b1f21' }}>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 {[
                   { col: 'cluster' as SortCol,              label: 'Cluster'     },
@@ -310,7 +314,10 @@ export default function Analytics() {
             </thead>
             <tbody>
               {sortedTable.map((c, i) => (
-                <tr key={c.cluster} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                <tr key={c.cluster}
+                  onClick={() => navigate(`/mapa?cluster=${encodeURIComponent(c.cluster)}`)}
+                  className="cursor-pointer transition-colors hover:bg-white/5"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                   <td className="px-4 py-2.5 font-medium" style={{ color: '#dde4e6' }}>
                     {c.cluster.replace(/_/g, ' ')}
                   </td>

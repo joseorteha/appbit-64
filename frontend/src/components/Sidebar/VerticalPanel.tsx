@@ -19,6 +19,7 @@ interface Props {
   onVerticalChange: (v: Vertical) => void
   onVerMapa?: () => void
   onClearCluster?: () => void
+  onClose?: () => void
   totalAntenas?: number
   clusters?: string[]
 }
@@ -30,9 +31,8 @@ function GlassCard({ children, className = '', style }: { children: React.ReactN
     <div
       className={`rounded-2xl p-5 ${className}`}
       style={{
-        background: 'rgba(30,32,32,0.45)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.09)',
+        background: '#1b1f21',
+        border: '1px solid rgba(255,255,255,0.07)',
         ...style,
       }}
     >
@@ -207,7 +207,7 @@ function EmpleabilidadContent({
       {/* Hero Impact card */}
       <div
         className="rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3 transition-transform hover:scale-[1.01]"
-        style={{ background: 'rgba(30,32,32,0.45)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.09)' }}
+        style={{ background: '#1b1f21', border: '1px solid rgba(255,255,255,0.09)' }}
       >
         <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(255,180,171,0.15)' }} />
         <div className="flex items-center gap-3 relative z-10">
@@ -409,7 +409,7 @@ function FormacionesContent({ indicadores, cobertura, demograficos = [] }: { ind
         {/* Brecha conectividad — solo clusters de formaciones */}
         <div
           className="rounded-2xl p-4 flex flex-col justify-between aspect-square transition-colors hover:bg-white/10"
-          style={{ background: 'rgba(51,53,53,0.45)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: '#252929', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           <WifiOff size={22} strokeWidth={1.5} style={{ color: '#ffb13b' }} />
           <div>
@@ -422,7 +422,7 @@ function FormacionesContent({ indicadores, cobertura, demograficos = [] }: { ind
         {/* Clusters con brecha real (pct_3g > 0.4) */}
         <div
           className="rounded-2xl p-4 flex flex-col justify-between aspect-square transition-colors hover:bg-white/10"
-          style={{ background: 'rgba(51,53,53,0.45)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: '#252929', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           <Monitor size={22} strokeWidth={1.5} style={{ color: '#ffb2b7' }} />
           <div>
@@ -435,7 +435,7 @@ function FormacionesContent({ indicadores, cobertura, demograficos = [] }: { ind
         {/* Zonas prioritarias + jóvenes 18-24 — span-2 */}
         <div
           className="col-span-2 rounded-2xl p-4 relative overflow-hidden"
-          style={{ background: 'rgba(30,32,32,0.45)', border: '1px solid rgba(255,255,255,0.09)' }}
+          style={{ background: '#1b1f21', border: '1px solid rgba(255,255,255,0.09)' }}
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -490,36 +490,31 @@ function Skeleton() {
 
 // ── Dataset header ────────────────────────────────────────────────────────────
 
-function DatasetHeader({ totalAntenas, clusters }: { totalAntenas: number; clusters: string[] }) {
+function DatasetHeader({ onClose }: { totalAntenas: number; clusters: string[]; onClose?: () => void }) {
   return (
     <div className="px-4 pt-3 pb-3 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-center justify-between mb-2.5">
-        <div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#2fd9f4' }}>
             App BiT 64
           </span>
-          <span className="text-[10px] ml-2" style={{ color: '#3c494c' }}>
+          <span className="text-[10px]" style={{ color: '#3c494c' }}>
             B2G · Florianópolis
           </span>
         </div>
-        <span className="text-[9px] px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(47,217,244,0.08)', color: '#859397', border: '1px solid rgba(47,217,244,0.15)' }}>
-          Mar 2026
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(47,217,244,0.08)', color: '#859397', border: '1px solid rgba(47,217,244,0.15)' }}>
+            Mar 2026
+          </span>
+          {onClose && (
+            <button onClick={onClose} className="transition-opacity hover:opacity-60" style={{ color: '#3c494c' }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-1">
-        {([
-          { val: totalAntenas || 132, label: 'antenas'  },
-          { val: clusters.length || 23, label: 'clusters' },
-          { val: '16.8M',              label: 'eventos'  },
-        ] as { val: number | string; label: string }[]).map(({ val, label }) => (
-          <div key={label} className="rounded-xl py-2 text-center"
-            style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <div className="text-sm font-bold" style={{ color: '#e2e2e2' }}>{val}</div>
-            <div className="text-[9px] uppercase tracking-wide" style={{ color: '#3c494c' }}>{label}</div>
-          </div>
-        ))}
-      </div>
+      <p className="text-[9px] mt-1" style={{ color: '#3f5258' }}>Vísent CDRView v2 · 16.8M eventos</p>
     </div>
   )
 }
@@ -542,7 +537,7 @@ const VERTICAL_DESC: Record<Vertical, string> = {
 
 export default function VerticalPanel({
   vertical, indicadores, loading, selectedCluster, cobertura,
-  flujos = [], demograficos = [], onVerticalChange, onVerMapa, onClearCluster,
+  flujos = [], demograficos = [], onVerticalChange, onVerMapa, onClearCluster, onClose,
   totalAntenas = 0, clusters = [],
 }: Props) {
   const clusterCob = selectedCluster ? cobertura.find(c => c.cluster === selectedCluster) : null
@@ -557,24 +552,25 @@ export default function VerticalPanel({
   return (
     <div className="flex flex-col h-full" style={{ color: '#e2e2e2' }}>
 
-      {/* Dataset KPI header */}
-      <DatasetHeader totalAntenas={totalAntenas} clusters={clusters} />
+      {/* Dataset header */}
+      <DatasetHeader totalAntenas={totalAntenas} clusters={clusters} onClose={onClose} />
 
-      {/* Tab bar */}
-      <div className="flex border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+      {/* Tab bar — pill style */}
+      <div className="flex gap-1 px-2 py-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         {TABS.map(({ id, Icon, label }) => {
           const active = vertical === id
           return (
             <button
               key={id}
               onClick={() => onVerticalChange(id)}
-              className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-all"
+              className="flex-1 flex flex-col items-center gap-1 py-2 text-xs font-semibold transition-all"
               style={{
                 color:        active ? '#2fd9f4' : '#859397',
-                borderBottom: active ? '2px solid #2fd9f4' : '2px solid transparent',
+                background:   active ? 'rgba(47,217,244,0.10)' : 'transparent',
+                borderRadius: 8,
               }}
             >
-              <Icon size={16} strokeWidth={active ? 2 : 1.5} />
+              <Icon size={15} strokeWidth={active ? 2 : 1.5} />
               {label}
             </button>
           )
@@ -582,8 +578,8 @@ export default function VerticalPanel({
       </div>
 
       {/* Vertical description */}
-      <div className="px-4 py-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <p className="text-[10px] leading-relaxed" style={{ color: '#3c494c' }}>
+      <div className="px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <p className="text-[10px] leading-relaxed" style={{ color: '#4a5c62' }}>
           {VERTICAL_DESC[vertical]}
         </p>
       </div>
@@ -674,7 +670,7 @@ export default function VerticalPanel({
       {/* Footer */}
       <div className="shrink-0 px-4 py-2.5 border-t text-center" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <span className="text-[10px] tracking-wide" style={{ color: '#3c494c' }}>
-          Mentorías · Experiencias — Próximamente
+          Vísent CDRView v2 · 16.8M eventos · Florianópolis
         </span>
       </div>
     </div>

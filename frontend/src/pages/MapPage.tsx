@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Moon, Sunrise, Sun, Sunset, X, type LucideIcon } from 'lucide-react'
+import { Moon, Sunrise, Sun, Sunset, X, ChevronLeft, type LucideIcon } from 'lucide-react'
 import {
   fetchMapa, fetchVertical, fetchFlujos, fetchConcentracion,
   fetchCobertura, fetchDemograficos, type DemograficoItem,
@@ -41,6 +41,7 @@ export default function MapPage() {
   const [demograficos,    setDemograficos]    = useState<DemograficoItem[]>([])
   const [showHint,        setShowHint]        = useState(true)
   const [queryOpen,       setQueryOpen]       = useState(false)
+  const [panelOpen,       setPanelOpen]       = useState(true)
   const mapFlyToRef = useRef<((cluster: string) => void) | null>(null)
 
   useEffect(() => {
@@ -135,8 +136,8 @@ export default function MapPage() {
         <NavDock vertical={vertical} onChange={handleVerticalChange} />
       </div>
 
-      {/* AI — toggle button (closed) or panel (open) */}
-      <div className="absolute z-[400]" style={{ top: '4.5rem', left: '5.5rem' }}>
+      {/* Desktop: AI button + panel — bottom-left, above period selector */}
+      <div className="hidden md:block absolute z-[400]" style={{ bottom: '6.5rem', left: '1.5rem' }}>
         {queryOpen ? (
           <div className="w-[340px] max-w-[calc(100vw-1.5rem)]">
             <QueryBar
@@ -163,8 +164,8 @@ export default function MapPage() {
         )}
       </div>
 
-      {/* Desktop: period selector */}
-      <div className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-[400]
+      {/* Desktop: period selector — bottom-left */}
+      <div className="hidden md:flex absolute bottom-6 left-6 z-[400]
                       items-center gap-0.5 px-2 py-1.5 rounded-dock glass"
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
         {PERIODOS.map(({ id, label, Icon }) => (
@@ -176,12 +177,27 @@ export default function MapPage() {
         ))}
       </div>
 
-      {/* Desktop: right vertical panel */}
-      <div className="hidden md:flex absolute right-4 bottom-4 w-[380px] z-[400]
-                      flex-col glass rounded-squircle overflow-hidden"
-        style={{ top: '4.5rem', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
-        <VerticalPanel {...sharedPanelProps} />
-      </div>
+      {/* Desktop: right vertical panel (colapsable) */}
+      {panelOpen ? (
+        <div className="hidden md:flex absolute right-4 bottom-4 w-[380px] z-[400]
+                        flex-col glass rounded-squircle overflow-hidden"
+          style={{ top: '4.5rem', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
+          <VerticalPanel {...sharedPanelProps} onClose={() => setPanelOpen(false)} />
+        </div>
+      ) : (
+        <button
+          onClick={() => setPanelOpen(true)}
+          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-[400]
+                     flex-col items-center gap-2 py-4 px-2.5 rounded-l-2xl glass transition-all hover:brightness-110"
+          style={{ boxShadow: '-4px 0 20px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.09)', borderRight: 'none' }}
+        >
+          <ChevronLeft size={14} style={{ color: '#2fd9f4' }} />
+          <span className="text-[9px] font-bold uppercase tracking-widest"
+            style={{ color: '#859397', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+            Datos
+          </span>
+        </button>
+      )}
 
       {/* Mobile: slide-up panel */}
       {mobilePanel && (
@@ -216,30 +232,34 @@ export default function MapPage() {
         <NavDock vertical={vertical} onChange={handleVerticalChange} horizontal />
       </div>
 
-      {/* Map legend */}
-      <div className="hidden md:block absolute bottom-6 right-4 md:right-[400px] z-[400] p-3 rounded-squircle glass text-xs"
-        style={{ minWidth: 155 }}>
-        <p className="font-semibold mb-2" style={{ color: '#bbc9cd' }}>Concentración</p>
+      {/* Map legend — compact horizontal row, bottom-center */}
+      <div className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-[400]
+                      items-center gap-3 px-4 py-2 rounded-full glass text-[11px]"
+        style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)', whiteSpace: 'nowrap' }}>
         {[
-          { color: '#22c55e', label: 'Baja (< 500)'   },
-          { color: '#eab308', label: 'Media (500–1k)'  },
-          { color: '#f97316', label: 'Alta (1k–2k)'    },
-          { color: '#ef4444', label: 'Crítica (> 2k)'  },
+          { color: '#22c55e', label: 'Baja'   },
+          { color: '#eab308', label: 'Media'  },
+          { color: '#f97316', label: 'Alta'   },
+          { color: '#ef4444', label: 'Crítica'},
         ].map(l => (
-          <div key={l.color} className="flex items-center gap-1.5 mt-1">
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: l.color }} />
+          <div key={l.color} className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: l.color }} />
             <span style={{ color: '#859397' }}>{l.label}</span>
           </div>
         ))}
-        <div className="mt-2 pt-2 flex items-center gap-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="w-5 h-0.5 rounded" style={{ background: '#2fd9f4', opacity: 0.5 }} />
-          <span style={{ color: '#859397' }}>Flujo OD (≥300 usuarios)</span>
+        <div className="w-px h-3 mx-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 rounded" style={{ background: '#2fd9f4', opacity: 0.5 }} />
+          <span style={{ color: '#859397' }}>Flujo OD</span>
         </div>
         {queryClusters.length > 0 && (
-          <div className="mt-1 flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full border-2 shrink-0" style={{ borderColor: '#fde047', background: 'transparent' }} />
-            <span style={{ color: '#fde047' }}>Resultado IA ({queryClusters.length})</span>
-          </div>
+          <>
+            <div className="w-px h-3 mx-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: '#fde047', background: 'transparent' }} />
+              <span style={{ color: '#fde047' }}>IA ({queryClusters.length})</span>
+            </div>
+          </>
         )}
       </div>
 
