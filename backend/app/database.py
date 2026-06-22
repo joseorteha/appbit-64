@@ -25,6 +25,6 @@ def get_db():
 def create_tables():
     # Import explícito para registrar todos los modelos en Base.metadata
     from app.models import (  # noqa: F401
-        antenas, concentracion, flujos, indicadores, demograficos, cobertura,
+        antenas, concentracion, flujos, indicadores, demograficos, cobertura, user,
     )
     Base.metadata.create_all(bind=engine)
