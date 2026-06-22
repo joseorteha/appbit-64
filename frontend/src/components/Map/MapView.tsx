@@ -21,6 +21,17 @@ interface Props {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 
+// HeatmapLayer requires WebGL 2.0 (#version 300 es + UBOs). Some mobile GPUs
+// fail shader compilation and leak the GLSL source to the screen as an error.
+const SUPPORTS_WEBGL2 = (() => {
+  try {
+    const canvas = document.createElement('canvas')
+    return !!canvas.getContext('webgl2')
+  } catch {
+    return false
+  }
+})()
+
 const INITIAL_VIEW = {
   longitude: -48.55, latitude: -27.595, zoom: 11, pitch: 52, bearing: -15,
 }
@@ -150,7 +161,7 @@ export default function MapView({
   }, [flyToRef, antenas, flyToCluster])
 
   const layers = useMemo(() => [
-    ...(heatData.length > 0 ? [
+    ...(heatData.length > 0 && SUPPORTS_WEBGL2 ? [
       new HeatmapLayer({
         id: 'heat', data: heatData,
         getPosition: (d: HeatPoint) => d.position,
