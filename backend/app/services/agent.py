@@ -198,12 +198,12 @@ def _llm_agent(consulta: str, filtros: dict) -> DatosResponse | None:
             sql_generado=sql_generado,
         )
     except Exception as e:
-        return DatosResponse(
-            respuesta_ia=f"El agente IA falló: {e}. Revisa GROQ_API_KEY y el modelo configurado.",
-            datos=[],
-            fuentes=[],
-            sql_generado=None,
-        )
+        # Reset cache so the next request re-initializes (e.g. after fixing GROQ_MODEL env var)
+        _agent_cache = None
+        import logging
+        logging.getLogger(__name__).error("[agent] LLM error: %s", e)
+        # Return None so run_agent falls back to the keyword-based response
+        return None
 
 
 def run_agent(consulta: str, filtros: dict, db: Session) -> DatosResponse:

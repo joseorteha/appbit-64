@@ -40,6 +40,7 @@ export default function MapPage() {
   const [queryClusters,   setQueryClusters]   = useState<string[]>([])
   const [demograficos,    setDemograficos]    = useState<DemograficoItem[]>([])
   const [showHint,        setShowHint]        = useState(true)
+  const [queryOpen,       setQueryOpen]       = useState(false)
   const mapFlyToRef = useRef<((cluster: string) => void) | null>(null)
 
   useEffect(() => {
@@ -134,10 +135,32 @@ export default function MapPage() {
         <NavDock vertical={vertical} onChange={handleVerticalChange} />
       </div>
 
-      {/* AI Query bar */}
-      <div className="absolute z-[400] left-4 right-4 md:left-[88px] md:right-[400px]"
-        style={{ top: '4.5rem' }}>
-        <QueryBar onResults={handleQueryResults} onFlyTo={handleFlyToCluster} />
+      {/* AI — toggle button (closed) or panel (open) */}
+      <div className="absolute z-[400]" style={{ top: '4.5rem', left: '5.5rem' }}>
+        {queryOpen ? (
+          <div className="w-[340px] max-w-[calc(100vw-1.5rem)]">
+            <QueryBar
+              onResults={handleQueryResults}
+              onFlyTo={handleFlyToCluster}
+              onClose={() => setQueryOpen(false)}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => setQueryOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl glass transition-all hover:brightness-110"
+            style={{ border: '1px solid rgba(47,217,244,0.22)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6.5" stroke="#2fd9f4" strokeWidth="1"/>
+              <path d="M4.5 5.5C4.5 4.12 5.62 3 7 3s2.5 1.12 2.5 2.5c0 1.5-1.5 2-1.5 3H6c0-1-.5-1.5-1.5-2.5z" fill="#2fd9f4" fillOpacity=".8"/>
+              <circle cx="7" cy="11" r=".75" fill="#2fd9f4"/>
+            </svg>
+            <span className="text-[12px] font-semibold" style={{ color: '#dde4e6', letterSpacing: '-0.01em' }}>
+              Consultar IA
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Desktop: period selector */}
