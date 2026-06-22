@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { Map, BarChart2, Bell, ArrowRight, Radio, Route, Bot } from 'lucide-react'
+import { Map, BarChart2, ArrowRight, Radio, Route, Bot } from 'lucide-react'
 import { fetchCobertura, fetchFlujos, fetchVertical } from '../api/client'
 import type { CoberturaItem, Flujo, Indicador } from '../types'
 import { useAuth } from '../context/AuthContext'
@@ -315,25 +315,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-3 mt-6">
-        {[
-          { label: 'Ver Mapa',      to: '/mapa',      Icon: Map       },
-          { label: 'Analytics',     to: '/analytics', Icon: BarChart2 },
-          { label: 'Ver Alertas',   to: '/alertas',   Icon: Bell      },
-        ].map(({ label, to, Icon }) => (
-          <button
-            key={to}
-            onClick={() => navigate(to)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-            style={{ background: 'rgba(47,217,244,0.08)', border: '1px solid rgba(47,217,244,0.2)', color: '#2fd9f4' }}
-          >
-            <Icon size={13} />
-            {label}
-            <ArrowRight size={11} />
-          </button>
-        ))}
-      </div>
     </div>
   )
 }

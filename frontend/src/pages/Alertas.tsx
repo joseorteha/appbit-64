@@ -281,11 +281,20 @@ export default function Alertas() {
         {alerts.map(alert => {
           const cfg    = SEVERITY_CONFIG[alert.severity]
           const status = statuses[alert.id] ?? alert.status
+          const rowBg  = status === 'Revisada'
+            ? 'rgba(245,158,11,0.04)'
+            : status === 'Resuelta'
+            ? 'rgba(34,197,94,0.03)'
+            : '#1b1f21'
           return (
             <div
               key={alert.id}
               className="rounded-xl p-4 flex items-center gap-4 transition-all hover:brightness-110"
-              style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
+              style={{
+                background: rowBg,
+                border: `1px solid rgba(255,255,255,0.07)`,
+                boxShadow: `inset 3px 0 0 0 ${cfg.color}`,
+              }}
             >
               {/* Severity badge */}
               <div className="shrink-0">
@@ -316,7 +325,7 @@ export default function Alertas() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => navigate(`/mapa?cluster=${encodeURIComponent(alert.cluster)}`)}
-                  className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full transition-all hover:scale-105"
+                  className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-full transition-all hover:scale-105"
                   style={{ background: 'rgba(47,217,244,0.08)', color: '#2fd9f4', border: '1px solid rgba(47,217,244,0.2)' }}
                 >
                   <Map size={10} />
@@ -324,7 +333,7 @@ export default function Alertas() {
                 </button>
                 <button
                   onClick={() => cycleStatus(alert.id)}
-                  className="text-[10px] px-2.5 py-1 rounded-full transition-all hover:scale-105"
+                  className="text-[10px] px-3 py-1.5 rounded-full transition-all hover:scale-105 font-semibold"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
                     color: statusColor[status],
