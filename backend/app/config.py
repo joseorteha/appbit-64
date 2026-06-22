@@ -12,6 +12,12 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # Auth Google + JWT
+    google_client_id: str = ""
+    jwt_secret: str = "dev_secret_change_in_production_32chars"
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_days: int = 30
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
